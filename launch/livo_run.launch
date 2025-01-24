@@ -1,0 +1,10 @@
+<launch>
+  <!-- 启动 msg_MID360.launch -->
+  <include file="$(find livox_ros_driver2)/launch_ROS1/msg_MID360.launch"/>
+
+  <!-- 启动 mapping_mid360.launch -->
+  <include file="$(find fast_lio)/launch/mapping_mid360.launch"/>
+
+  <!-- 启动 uart_com 包下的 send 节点 -->
+  <node name="send" pkg="uart_com" type="send" output="screen"/>
+</launch>
