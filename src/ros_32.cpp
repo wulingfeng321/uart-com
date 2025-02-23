@@ -16,7 +16,7 @@ boost::asio::serial_port sp(iosev, serial_name);//创建串口对象
 const unsigned char CRC8_POLYNOMIAL = 0x07; //CRC8多项式
 const unsigned char CRC8_INITIAL_VALUE = 0x00; //CRC8初始值
     
-
+// 串口初始化
 extern void serialInit(){
     //设置串口参数
     sp.set_option(boost::asio::serial_port_base::baud_rate(115200));
@@ -235,4 +235,39 @@ void trans2robot(float* msg){
     msg[0] = x_robot;
     msg[1] = y_robot;
     msg[5] = yaw_robot;
+}
+
+
+//发送8byte数据信息，msg为接收到的自定消息类型
+void send8byte(const custom_msgs::carplace &msg){
+    //创建共用体，将float数据转换为字节数组
+    union{
+        float f[2];
+        unsigned char c[8];
+    }data;
+    data.f[0] = msg.distance;
+    data.f[1] = msg.yaw;
+
+    unsigned char buf[14]= {0};                                
+    int i = 0;
+    short len = 0;//数据长度，范围0-255
+    //消息头
+    buf[i++] = header[0];
+    buf[i++] = header[1];
+    //数据长度
+    len = 8;
+    buf[i++] = 0x08;//长度为8
+    //数据赋值
+    for(int j = 0; j < 8; j++){
+        buf[i++] = data.c[j];
+    }
+    //校验和
+    unsigned char crc = getCrc(data.c, len, CRC8_POLYNOMIAL, CRC8_INITIAL_VALUE);
+    buf[i++] = crc;
+    //消息尾
+    buf[i++] = ender[0];
+    buf[i++] = ender[1];
+    //发送数据
+    boost::asio::write(sp, boost::asio::buffer(buf));
+    ROS_INFO("send data %.2f %.2f complete:",data.f[0],data.f[1]);
 }

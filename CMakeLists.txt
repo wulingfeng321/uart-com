@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(uart_com)
+cmake_policy(SET CMP0167 NEW)
 
+link_directories(/opt/ros/noetic/lib)
+
+find_package(tf2_ros REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  #geometry_msgs
+  geometry_msgs
+  tf2_ros
+  message_generation
+  custom_msgs
 )
 find_package(Boost REQUIRED COMPONENTS 
   system 
@@ -16,13 +23,15 @@ find_package(Boost REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES uart_com
-  CATKIN_DEPENDS roscpp rospy serial std_msgs
+  CATKIN_DEPENDS roscpp rospy serial std_msgs message_runtime
 )
+
 include_directories(
     ${catkin_INCLUDE_DIRS}  
     ${CMAKE_SOURCE_DIR}
     include
 )
+
 
 add_executable(send
   src/ros_32.cpp
@@ -32,7 +41,6 @@ add_executable(send
 target_link_libraries(send
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
-  #tf2_geometry_msgs
   tf2
 )
 

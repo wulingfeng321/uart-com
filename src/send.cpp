@@ -1,12 +1,3 @@
-//从ros话题中读取数据，并输出到串口中
-#include<ros/ros.h>
-#include<std_msgs/String.h>
-#include<iostream>
-#include<string>
-#include<sstream>
-#include <boost/asio.hpp>
-#include <boost/asio/serial_port.hpp>
-#include <functional>
 #include "../include/ros_32.h"
 using namespace std;
 
@@ -31,6 +22,7 @@ int main(int argc, char** argv){
 		//订阅place_info话题，包含机器人当前坐标，姿态信息
         //将ros消息转换为串口数据
         ros::Subscriber sub = uart.subscribe("/Odometry", 10, depart_place);
+        ros::Subscriber sub2= uart.subscribe("/car_place",10, send8byte);
         //等待回调函数执行
 		loop_rate.sleep();
         ros::spin();
