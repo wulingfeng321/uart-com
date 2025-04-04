@@ -27,32 +27,6 @@ extern void serialInit(){
 }
 
 //发送函数
-//发送测试数据“hello”
-void sendTest(){
-    unsigned char buf[11]= {0};
-    int i = 0;
-    //消息头
-    buf[i++] = header[0];
-    buf[i++] = header[1];
-    //数据长度
-    int len = 5;
-    buf[i++] = len&0xff;
-    //数据
-    buf[i++] = 'h';
-    buf[i++] = 'e';
-    buf[i++] = 'l';
-    buf[i++] = 'l';
-    buf[i++] = 'o';
-    //校验和
-    unsigned char crc = getCrc(buf, i, CRC8_POLYNOMIAL, CRC8_INITIAL_VALUE);
-    buf[i++] = crc;
-    //消息尾
-    buf[i++] = ender[0];
-    buf[i++] = ender[1];
-    //发送数据
-    boost::asio::write(sp, boost::asio::buffer(buf));
-    ROS_WARN("send hello complete");
-}
 
 //发送12byte数据信息，可容纳6个float数据,精度为precision1位小数和precision2位小数
 //数据格式为：帧头  数据长度  数据  校验和  结束符
@@ -92,32 +66,41 @@ void send12byte(float* msg){
 }
 
 
-//接收函数
-//接收测试数据“world”
-void receiveTest(unsigned char* msg){
-    unsigned char buf[10]= {0};
+//发送8byte数据信息，msg为接收到的自定消息类型
+void send8byte(const custom_msgs::carplace &msg){
+    //创建共用体，将float数据转换为字节数组
+    union{
+        float f[2];
+        unsigned char c[8];
+    }data;
+    data.f[0] = msg.distance;
+    data.f[1] = msg.yaw;
+
+    unsigned char buf[14]= {0};                                
     int i = 0;
-    //接收数据
-    boost::asio::read(sp, boost::asio::buffer(buf, 10));
+    short len = 0;//数据长度，范围0-255
+    //消息头
+    buf[i++] = header[0];
+    buf[i++] = header[1];
     //数据长度
-    int len = buf[2];
-    //数据
-    for(i = 3; i < 8; i++){
-        ROS_INFO("%c",buf[i]);
+    len = 8;
+    buf[i++] = 0x08;//长度为8
+    //数据赋值
+    for(int j = 0; j < 8; j++){
+        buf[i++] = data.c[j];
     }
     //校验和
-    unsigned char crc = getCrc(buf, 8, CRC8_POLYNOMIAL, CRC8_INITIAL_VALUE);
-    if(crc!= buf[8]){
-        ROS_WARN("CRC ERROR!");
-        return;
-    }
+    unsigned char crc = getCrc(data.c, len, CRC8_POLYNOMIAL, CRC8_INITIAL_VALUE);
+    buf[i++] = crc;
     //消息尾
-    if(buf[9]!= ender[0] || buf[10] != ender[1]){
-        ROS_WARN("ENDER ERROR!");
-        return;
-    }
-    ROS_WARN("receive world complete");
+    buf[i++] = ender[0];
+    buf[i++] = ender[1];
+    //发送数据
+    boost::asio::write(sp, boost::asio::buffer(buf));
+    ROS_INFO("send data %.2f %.2f complete:",data.f[0],data.f[1]);
 }
+
+//接收函数
 
 //接收12byte数据信息，msg为接收到的字节数组
 //数据格式为：帧头  数据长度  数据  校验和  结束符
@@ -216,6 +199,7 @@ void depart_place(const nav_msgs::Odometry::ConstPtr &msg)
     ROS_INFO("data into send 12byte:");
     send12byte(msg_place);
 }
+
 //串口接受数据处理
 //void serial_data_process(unsigned char* msg, int len,std::string message) {}
 
@@ -235,39 +219,4 @@ void trans2robot(float* msg){
     msg[0] = x_robot;
     msg[1] = y_robot;
     msg[5] = yaw_robot;
-}
-
-
-//发送8byte数据信息，msg为接收到的自定消息类型
-void send8byte(const custom_msgs::carplace &msg){
-    //创建共用体，将float数据转换为字节数组
-    union{
-        float f[2];
-        unsigned char c[8];
-    }data;
-    data.f[0] = msg.distance;
-    data.f[1] = msg.yaw;
-
-    unsigned char buf[14]= {0};                                
-    int i = 0;
-    short len = 0;//数据长度，范围0-255
-    //消息头
-    buf[i++] = header[0];
-    buf[i++] = header[1];
-    //数据长度
-    len = 8;
-    buf[i++] = 0x08;//长度为8
-    //数据赋值
-    for(int j = 0; j < 8; j++){
-        buf[i++] = data.c[j];
-    }
-    //校验和
-    unsigned char crc = getCrc(data.c, len, CRC8_POLYNOMIAL, CRC8_INITIAL_VALUE);
-    buf[i++] = crc;
-    //消息尾
-    buf[i++] = ender[0];
-    buf[i++] = ender[1];
-    //发送数据
-    boost::asio::write(sp, boost::asio::buffer(buf));
-    ROS_INFO("send data %.2f %.2f complete:",data.f[0],data.f[1]);
 }

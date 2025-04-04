@@ -21,9 +21,7 @@
 using namespace std;
 extern float msg_place[];
 extern void serialInit();//初始化串口
-extern void sendTest();//发送测试数据
 extern void send12byte(float* msg);//发送12byte数据
-extern void receiveTest(unsigned char* msg);//接收测试数据
 extern int receive12byte(unsigned char* msg);//接收12byte数据
 extern unsigned char getCrc(const unsigned char *data, short length, unsigned char polynomial, unsigned char initial_value); //计算CRC8校验码
 extern void depart_place(const nav_msgs::Odometry::ConstPtr &msg);//拆分ros消息
