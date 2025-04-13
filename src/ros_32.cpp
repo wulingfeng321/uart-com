@@ -205,7 +205,9 @@ void depart_place(const nav_msgs::Odometry::ConstPtr &msg)
 
 //slam坐标转换机器人坐标
 void trans2robot(float* msg){
-    //机器人坐标系与slam坐标系关系：x轴正方向相反，y轴正方向相反，z轴正方向相同，均为右手坐标系，且slam坐标系原点位于机器人坐标系的(x,y,z)=(0,0.33662,1.14837)
+    //slam坐标系原点位于机器人坐标系的(x,y)=(a,b) 
+    float a = 0.33662;
+    float b = 0.33662;
     float x = msg[0];
     float y = msg[1];
     float z = msg[2];
@@ -213,8 +215,8 @@ void trans2robot(float* msg){
     float pitch = msg[4];
     float yaw = msg[5];
     float x_robot , y_robot, yaw_robot;
-    x_robot = x-0.33662*sin(roll);
-    y_robot = y-0.33662+0.33662*cos(roll);
+    x_robot = y-(cos(yaw)-1)*a-(sin(yaw))*b;
+    y_robot = -x-sin(yaw)*a+(cos(yaw)-1)*b;
     yaw_robot = yaw;
     msg[0] = x_robot;
     msg[1] = y_robot;
