@@ -10,7 +10,13 @@ std::string serial_name="/dev/ttyTHS0"; //串口名称
 //创建串口对象
 boost::asio::io_context iosev;//创建io_service对象
 //创建串口对象
-boost::asio::serial_port sp(iosev, serial_name);//创建串口对象   
+boost::asio::serial_port sp(iosev, serial_name);//创建串口对象  
+
+//发送内容共用体
+union{
+    float f[6];
+    unsigned char c[24];
+}data_buf;
 
 //crc校验常量
 const unsigned char CRC8_POLYNOMIAL = 0x07; //CRC8多项式
@@ -28,7 +34,7 @@ extern void serialInit(){
 
 //发送函数
 
-//发送12byte数据信息，可容纳6个float数据,精度为precision1位小数和precision2位小数
+//发送12byte数据信息，可容纳6个float数据，采用CRC8校验
 //数据格式为：帧头  数据长度  数据  校验和  结束符
 void send12byte(float* msg){
 
@@ -65,6 +71,33 @@ void send12byte(float* msg){
     ROS_INFO("send data %.2f %.2f %.2f complete:",data.f[0],data.f[1],data.f[2]);
 }
 
+//发送24byte数据信息，可容纳12个float数据，采用奇偶校验
+//数据格式为：帧头  数据长度  数据  校验和  结束符
+void send24byte(){
+    // 从data_buf中提取数据
+    unsigned char buf[30]= {0};
+    int i = 0;
+    short len = 0;//数据长度，范围0-255
+    //消息头
+    buf[i++] = header[0];
+    buf[i++] = header[1];
+    //数据长度
+    len = 24;
+    buf[i++] = 0x18;//长度为24
+    //数据赋值
+    for(int j = 0; j < 24; j++){
+        buf[i++] = data_buf.c[j];
+    }
+    //校验和
+    unsigned char parity = getParity(data_buf.c, len);
+    buf[i++] = parity;
+    //消息尾
+    buf[i++] = ender[0];
+    buf[i++] = ender[1];
+    //发送数据
+    boost::asio::write(sp, boost::asio::buffer(buf));
+    ROS_INFO("send data x:%.2f y:%.2f yaw:%.2f \n       bx:%.2f by:%.2f bz:%.2f complete:",data_buf.f[0],data_buf.f[1],data_buf.f[2],data_buf.f[3],data_buf.f[4],data_buf.f[5]);
+}
 
 //发送8byte数据信息，msg为接收到的自定消息类型
 void send8byte(const custom_msgs::carplace &msg){
@@ -150,6 +183,28 @@ unsigned char getCrc(const unsigned char *data, short length, unsigned char poly
     return crc; // 返回最终计算的CRC值
 }
 
+// 奇偶校验函数
+unsigned char getParity(const unsigned char *data, short length) {
+    unsigned char parity = 0;
+    for (int i = 0; i < length; i++) {
+        parity ^= data[i]; // 计算异或和
+    }
+    return parity; // 返回奇偶校验值
+}
+
+// 压入data_buf前三位
+void pushData(float* msg){
+    for(int i = 0; i < 6; i++){
+        data_buf.f[i] = msg[i];
+    }
+}
+// 压入data_buf后三位
+void pushData2(float* msg){
+    for(int i = 0; i < 6; i++){
+        data_buf.f[i+6] = msg[i];
+    }
+}
+
 //关闭串口
 void serialClose()
 {
@@ -182,8 +237,8 @@ void depart_place(const nav_msgs::Odometry::ConstPtr &msg)
     tf2::Quaternion q(d, e, f, g);
     double roll, pitch, yaw;
     tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-    ROS_INFO("x:%f y:%f z:%f", a, b, c);
-    ROS_INFO("roll:%f pitch:%f yaw:%f", roll, pitch, yaw);
+    // ROS_INFO("x:%f y:%f z:%f", a, b, c);
+    // ROS_INFO("roll:%f pitch:%f yaw:%f", roll, pitch, yaw);
 
     //坐标系变换
     float msg_bef[6] = {a, b, c, roll, pitch, yaw};
@@ -196,8 +251,40 @@ void depart_place(const nav_msgs::Odometry::ConstPtr &msg)
     msg_place[i++] = msg_bef[5];
 
     //发送数据
-    ROS_INFO("data into send 12byte:");
-    send12byte(msg_place);
+    // ROS_INFO("data into send 12byte:");
+    // send12byte(msg_place);
+
+    // 压入data_buf前三位
+    pushData(msg_place);
+
+    //发送数据
+    ROS_INFO("data into send 24byte:");
+    send24byte();
+    
+}
+
+// 篮筐位置提取
+void basket_place(const custom_msgs::xyz &msg)
+{
+    ROS_INFO("Received a new basket message at %d.",msg.timestamp.sec);
+    // 提取位置信息
+    float x = msg.x;
+    float y = msg.y;
+    float z = msg.z;
+    // ROS_INFO("x:%f y:%f z:%f", x, y, z);
+    //数据赋值
+    int i = 0;
+    msg_place[i++] = x;
+    msg_place[i++] = y;
+    msg_place[i++] = z;
+
+    //发送数据
+    // ROS_INFO("data into send 12byte:");
+    // send12byte(msg_place);
+
+    // 压入data_buf后三位
+    pushData2(msg_place);
+    //发送数据合并至车辆坐标发送
 }
 
 //串口接受数据处理

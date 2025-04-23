@@ -22,7 +22,9 @@ int main(int argc, char** argv){
 		//订阅place_info话题，包含机器人当前坐标，姿态信息
         //将ros消息转换为串口数据
         ros::Subscriber sub = uart.subscribe("/Odometry", 10, depart_place);
-        ros::Subscriber sub2= uart.subscribe("/car_place",10, send8byte);
+        // ros::Subscriber sub2= uart.subscribe("/car_place",10, send8byte);
+        //订阅basket_place话题，包含篮筐坐标信息
+        ros::Subscriber sub3= uart.subscribe("/results",10, basket_place);
         //等待回调函数执行
 		loop_rate.sleep();
         ros::spin();
