@@ -2,6 +2,7 @@
 
 using namespace std;
 float msg_place[3];
+float msg_place2[3];
 
 //串口发送接收相关常量、变量、共用体对象
 const unsigned char ender[2] = {0x0d, 0x0a};//结束符 0x0d:回车 0x0a:换行
@@ -194,14 +195,14 @@ unsigned char getParity(const unsigned char *data, short length) {
 
 // 压入data_buf前三位
 void pushData(float* msg){
-    for(int i = 0; i < 6; i++){
+    for(int i = 0; i < 3; i++){
         data_buf.f[i] = msg[i];
     }
 }
 // 压入data_buf后三位
 void pushData2(float* msg){
-    for(int i = 0; i < 6; i++){
-        data_buf.f[i+6] = msg[i];
+    for(int i = 0; i < 3; i++){
+        data_buf.f[i+3] = msg[i];
     }
 }
 
@@ -274,16 +275,16 @@ void basket_place(const custom_msgs::xyz &msg)
     // ROS_INFO("x:%f y:%f z:%f", x, y, z);
     //数据赋值
     int i = 0;
-    msg_place[i++] = x;
-    msg_place[i++] = y;
-    msg_place[i++] = z;
+    msg_place2[i++] = x;
+    msg_place2[i++] = y;
+    msg_place2[i++] = z;
 
     //发送数据
     // ROS_INFO("data into send 12byte:");
     // send12byte(msg_place);
 
     // 压入data_buf后三位
-    pushData2(msg_place);
+    pushData2(msg_place2);
     //发送数据合并至车辆坐标发送
 }
 

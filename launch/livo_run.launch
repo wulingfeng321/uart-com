@@ -6,7 +6,7 @@
   <include file="$(find fast_lio)/launch/mapping_mid360.launch"/>
 
   <!-- 启动tensorrt_yolo下的d435i_yolo.launch -->
-  <include file="$(find tensorrt_yolo)/launch/d435i_yolo.launch">
+  <include file="$(find tensorrt_yolo)/launch/d435i_yolo.launch"/>
 
   <!-- 启动 uart_com 包下的 send 节点 -->
   <node name="send" pkg="uart_com" type="send" output="screen"/>
